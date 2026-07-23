@@ -18,23 +18,6 @@ PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 
-# 安全处理：索引阶段 LINUX_VERSION 可能未定义，此时不调用 AutoProbe
-AUTOLOAD_VALUE = $(if $(LINUX_VERSION),$(call AutoProbe,r8125),)
-
-define KernelPackage/r8125
-  SUBMENU:=Network Devices
-  TITLE:=Driver for Realtek r8125 chipsets
-  # 使用固定的版本格式，避免依赖未定义变量
-  VERSION:=$(PKG_VERSION)-$(PKG_RELEASE)
-  FILES:= $(PKG_BUILD_DIR)/r8125.ko
-  AUTOLOAD:=$(AUTOLOAD_VALUE)
-  DEFAULT:=y
-endef
-
-define Package/r8125/description
- This package contains a driver for Realtek r8125 chipsets.
-endef
-
 R8125_MAKEOPTS= -C $(PKG_BUILD_DIR) \
                 PATH="$(TARGET_PATH)" \
                 ARCH="$(LINUX_KARCH)" \
@@ -56,4 +39,32 @@ define Build/Compile
         $(MAKE) $(R8125_MAKEOPTS) modules
 endef
 
+# 关键修改：判断是否处于索引阶段（KERNEL_VERSION 未定义）
+ifndef KERNEL_VERSION
+# 索引阶段：提供 packageinfo 目标，供 scripts/feeds 收集信息
+packageinfo:
+	@echo "Package: r8125"
+	@echo "Version: $(PKG_VERSION)-$(PKG_RELEASE)"
+	@echo "Depends: +kmod-r8125"
+	@echo "Category: Kernel modules"
+	@echo "Section: kernel"
+	@echo "Title: Driver for Realtek r8125 chipsets"
+	@echo "Description: This package contains a driver for Realtek r8125 chipsets."
+	@echo "License: GPL-2.0"
+else
+# 正常编译阶段：使用标准 KernelPackage 宏
+define KernelPackage/r8125
+  SUBMENU:=Network Devices
+  TITLE:=Driver for Realtek r8125 chipsets
+  VERSION:=$(PKG_VERSION)-$(PKG_RELEASE)
+  FILES:= $(PKG_BUILD_DIR)/r8125.ko
+  AUTOLOAD:=$(call AutoProbe,r8125)
+  DEFAULT:=y
+endef
+
+define Package/r8125/description
+ This package contains a driver for Realtek r8125 chipsets.
+endef
+
 $(eval $(call KernelPackage,r8125))
+endif
