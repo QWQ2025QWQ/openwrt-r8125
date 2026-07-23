@@ -18,12 +18,16 @@ PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 
+# 安全处理：索引阶段 LINUX_VERSION 可能未定义，此时不调用 AutoProbe
+AUTOLOAD_VALUE = $(if $(LINUX_VERSION),$(call AutoProbe,r8125),)
+
 define KernelPackage/r8125
   SUBMENU:=Network Devices
   TITLE:=Driver for Realtek r8125 chipsets
-  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
+  # 使用固定的版本格式，避免依赖未定义变量
+  VERSION:=$(PKG_VERSION)-$(PKG_RELEASE)
   FILES:= $(PKG_BUILD_DIR)/r8125.ko
-  AUTOLOAD:=$(call AutoProbe,r8125)
+  AUTOLOAD:=$(AUTOLOAD_VALUE)
   DEFAULT:=y
 endef
 
@@ -32,24 +36,24 @@ define Package/r8125/description
 endef
 
 R8125_MAKEOPTS= -C $(PKG_BUILD_DIR) \
-		PATH="$(TARGET_PATH)" \
-		ARCH="$(LINUX_KARCH)" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
-		TARGET="$(HAL_TARGET)" \
-		TOOLPREFIX="$(KERNEL_CROSS)" \
-		TOOLPATH="$(KERNEL_CROSS)" \
-		KERNELPATH="$(LINUX_DIR)" \
-		KERNELDIR="$(LINUX_DIR)" \
-		LDOPTS=" " \
-		DOMULTI=1
+                PATH="$(TARGET_PATH)" \
+                ARCH="$(LINUX_KARCH)" \
+                CROSS_COMPILE="$(TARGET_CROSS)" \
+                TARGET="$(HAL_TARGET)" \
+                TOOLPREFIX="$(KERNEL_CROSS)" \
+                TOOLPATH="$(KERNEL_CROSS)" \
+                KERNELPATH="$(LINUX_DIR)" \
+                KERNELDIR="$(LINUX_DIR)" \
+                LDOPTS=" " \
+                DOMULTI=1
 
 define Build/Prepare
-	mkdir -p $(PKG_BUILD_DIR)
-	$(CP) ./src/* $(PKG_BUILD_DIR)
+        mkdir -p $(PKG_BUILD_DIR)
+        $(CP) ./src/* $(PKG_BUILD_DIR)
 endef
 
 define Build/Compile
-	$(MAKE) $(R8125_MAKEOPTS) modules
+        $(MAKE) $(R8125_MAKEOPTS) modules
 endef
 
 $(eval $(call KernelPackage,r8125))
