@@ -18,45 +18,10 @@ PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 
-R8125_MAKEOPTS= -C $(PKG_BUILD_DIR) \
-                PATH="$(TARGET_PATH)" \
-                ARCH="$(LINUX_KARCH)" \
-                CROSS_COMPILE="$(TARGET_CROSS)" \
-                TARGET="$(HAL_TARGET)" \
-                TOOLPREFIX="$(KERNEL_CROSS)" \
-                TOOLPATH="$(KERNEL_CROSS)" \
-                KERNELPATH="$(LINUX_DIR)" \
-                KERNELDIR="$(LINUX_DIR)" \
-                LDOPTS=" " \
-                DOMULTI=1
-
-define Build/Prepare
-        mkdir -p $(PKG_BUILD_DIR)
-        $(CP) ./src/* $(PKG_BUILD_DIR)
-endef
-
-define Build/Compile
-        $(MAKE) $(R8125_MAKEOPTS) modules
-endef
-
-# 关键修改：判断是否处于索引阶段（KERNEL_VERSION 未定义）
-ifndef KERNEL_VERSION
-# 索引阶段：提供 packageinfo 目标，供 scripts/feeds 收集信息
-packageinfo:
-	@echo "Package: r8125"
-	@echo "Version: $(PKG_VERSION)-$(PKG_RELEASE)"
-	@echo "Depends: +kmod-r8125"
-	@echo "Category: Kernel modules"
-	@echo "Section: kernel"
-	@echo "Title: Driver for Realtek r8125 chipsets"
-	@echo "Description: This package contains a driver for Realtek r8125 chipsets."
-	@echo "License: GPL-2.0"
-else
-# 正常编译阶段：使用标准 KernelPackage 宏
 define KernelPackage/r8125
   SUBMENU:=Network Devices
   TITLE:=Driver for Realtek r8125 chipsets
-  VERSION:=$(PKG_VERSION)-$(PKG_RELEASE)
+  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
   FILES:= $(PKG_BUILD_DIR)/r8125.ko
   AUTOLOAD:=$(call AutoProbe,r8125)
   DEFAULT:=y
@@ -66,5 +31,25 @@ define Package/r8125/description
  This package contains a driver for Realtek r8125 chipsets.
 endef
 
+R8125_MAKEOPTS= -C $(PKG_BUILD_DIR) \
+		PATH="$(TARGET_PATH)" \
+		ARCH="$(LINUX_KARCH)" \
+		CROSS_COMPILE="$(TARGET_CROSS)" \
+		TARGET="$(HAL_TARGET)" \
+		TOOLPREFIX="$(KERNEL_CROSS)" \
+		TOOLPATH="$(KERNEL_CROSS)" \
+		KERNELPATH="$(LINUX_DIR)" \
+		KERNELDIR="$(LINUX_DIR)" \
+		LDOPTS=" " \
+		DOMULTI=1
+
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+	$(CP) ./src/* $(PKG_BUILD_DIR)
+endef
+
+define Build/Compile
+	$(MAKE) $(R8125_MAKEOPTS) modules
+endef
+
 $(eval $(call KernelPackage,r8125))
-endif
